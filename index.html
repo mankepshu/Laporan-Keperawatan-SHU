@@ -94,19 +94,21 @@ pre{white-space:pre-wrap;font:inherit;max-height:60vh;overflow:auto;margin:0 0 1
 <div class="ins" id="ins" hidden><img src="icon-192.png" alt=""><span id="it"></span><button class="b" id="ib" hidden>Pasang</button><button class="b o" id="in">Nanti</button></div>
 <div id="toast"></div>
 <script>
-const RUANG=["Ruang Bayi","Ruang Gambuh A","Ruang Gambuh B","Ruang Gambuh C","Ruang HD","Ruang IGD","Ruang Intensif","Ruang Lantai 3","Ruang Lantai 4","Ruang OK","Ruang Poliklinik","Ruang VK"];
+const RUANG=["Unit Dialisis","Ranap Lantai Dasar","IGD","ICU","PICU","VK","NICU","OK","Poliklinik","Ranap Lantai III","Ranap Lantai IV Executive"];
 const SH=[["pagi","Pagi","07.30-13.30"],["sore","Sore","13.30-19.30"],["malam","Malam","19.30-07.30"]];
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const LS=k=>{try{return JSON.parse(localStorage.getItem("ubg_"+k))}catch(e){return null}};
 const S={cfg:LS("cfg")||{url:"",token:"",kepala:"",ruang:""},local:LS("local")||{},remote:LS("remote")||{},queue:LS("queue")||[],del:LS("del")||[],err:""};
 const DEF="https://script.google.com/macros/s/AKfycbwM4cyBjeGofGHbEK2gZdbIDnlGrOw8yp8Yyf5Mwhh3PuXpNqhvfr6POycuktIHmXihQw/exec";if(!S.cfg.custom)S.cfg.url=DEF;
 const persist=()=>["cfg","local","remote","queue","del"].forEach(k=>localStorage.setItem("ubg_"+k,JSON.stringify(S[k])));
+/* Daftar ruang versi baru: riwayat lama (nama ruang lama) dilewati */
+const DV="2";if(LS("dv")!==DV){S.local={};S.remote={};S.queue=[];S.del=[];delete S.cfg.kamar;if(!RUANG.includes(S.cfg.ruang))S.cfg.ruang="";persist();localStorage.setItem("ubg_dv",JSON.stringify(DV))}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const tglID=t=>new Date(t+"T00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 const v=x=>x===undefined||x===""||x===null?"-":x;
 const toast=m=>{const t=$("#toast");t.textContent=m;t.className="on";setTimeout(()=>t.className="",Math.max(2400,m.length*70))};
-const all=()=>{const m={...S.remote};for(const k in S.local)if(!m[k]||(S.local[k].ts||0)>=(m[k].ts||0))m[k]=S.local[k];S.del.forEach(k=>delete m[k]);return m};
+const all=()=>{const m={...S.remote};for(const k in S.local)if(!m[k]||(S.local[k].ts||0)>=(m[k].ts||0))m[k]=S.local[k];for(const k in m)if(!RUANG.includes(m[k].ruang))delete m[k];S.del.forEach(k=>delete m[k]);return m};
 
 /* ---------- Form ---------- */
 const N=(n,l)=>`<label>${l}<input type="number" min="0" inputmode="numeric" name="${n}"></label>`;
@@ -124,7 +126,7 @@ const J={
  bayi:{sh:S3,it:[["pasien","Jumlah Pasien",PAY],["status","Status Bayi",[["sehat","Bayi Sehat"],["nicu","NICU"],["resti","Bayi Resti"],["foto","Fototerapi"]]],["shk","Jumlah Tindakan SHK",PAY],["infus","Jumlah Pasien Pasang Infus"],["vent","Jumlah Pasien Pasang Ventilator"],["cpap","Jumlah Pasien Pasang CPAP"],["pulang","Jumlah Pasien Pulang"],["rujuk","Jumlah Pasien Dirujuk",PAY],["o2","Jumlah Pasien Memakai Oksigen"],["trf","Jumlah Pasien yang Mendapatkan Transfusi"]],tn:[["",null,S3]]},
  vk:{sh:S3,it:[["pasien","Jumlah Pasien",PAY],["normal","Jumlah Tindakan Persalinan Normal",PAY],["sc","Jumlah Tindakan Persalinan SC",PAY],["pato","Jumlah Tindakan Persalinan Patologi",PAY],["gynp","Jumlah Pasien Gynecology"],["gynt","Jumlah Tindakan Gynecology",PAY],["infus","Jumlah Pasien Pasang Infus"],["cath","Jumlah Pasien Pasang Catheter"],["mrs","Jumlah Pasien MRS",PAY],["pulang","Jumlah Pasien Pulang"],["o2","Jumlah Pasien Memakai Oksigen"],["trf","Jumlah Pasien yang Mendapatkan Transfusi"]],tn:[["",null,S3]]},
  poli:{sh:[],it:[],tn:TN4}};
-const RFMT={"Ruang Bayi":"bayi","Ruang HD":"hd","Ruang IGD":"igd","Ruang OK":"ok","Ruang Poliklinik":"poli","Ruang VK":"vk"},fmtOf=n=>RFMT[n]||"ri";
+const RFMT={"NICU":"bayi","Unit Dialisis":"hd","IGD":"igd","OK":"ok","Poliklinik":"poli","VK":"vk"},fmtOf=n=>RFMT[n]||"ri";
 const SHEET={ri:"Rekap Laporan",igd:"Rekap IGD",hd:"Rekap Hemodialisis",ok:"Rekap Ruang Operasi",bayi:"Rekap Neonatus",vk:"Rekap Ruang Bersalin",poli:"Rekap Poliklinik"};
 const XN={ri:"Rawat Inap",igd:"IGD",hd:"Hemodialisis",ok:"Operasi dan Bedah",bayi:"Neonatus",vk:"Ruang Bersalin",poli:"Poliklinik"};
 const SP=["SP THT","OBGYN","BEDAH UMUM","BEDAH ANAK","BEDAH SARAF","BEDAH UROLOGI","BEDAH ONCOLOGI","BEDAH TULANG","BEDAH DIGESTIF","BEDAH THORAX","BEDAH PLASTK","SP SARAF","INTERNA","SP ANAK","SP KULIT KELAMIN","SP MATA","SP PARU","SP JANTUNG","SP JIWA","SP GIZI KLINIK","HEMATOLOGI ONK"];
@@ -133,10 +135,11 @@ const IKPS=[["kpcs","KPCS"],["knc","KNC"],["ktc","KTC"],["ktd","KTD"],["sentinel
 const SKPN=[["s1","SKP 1 (Mengidentifikasi Pasien dengan Benar)"],["s2","SKP 2 (Meningkatkan Komunikasi yang Efektif)"],["s3","SKP 3 (Meningkatkan Keamanan Obat yang Harus Diwaspadai)"],["s4","SKP 4 (Memastikan Lokasi, Prosedur, dan Pasien yang Benar pada Tindakan Bedah)"],["s5","SKP 5 (Mengurangi Risiko Infeksi Akibat Perawatan Kesehatan)"],["s6","SKP 6 (Mengurangi Risiko Cedera Pasien Akibat Jatuh)"]];
 const rng=(a,b)=>Array.from({length:b-a+1},(_,i)=>String(a+i)),sama=l=>l.map(x=>[x,x]),bed=(n,p)=>Array.from({length:n},(_,i)=>[p+"BED "+(i+1),"Bed "+(i+1)]);
 const kol=l=>{const c=Math.ceil(l.length/4),n=Math.ceil(l.length/c);return Array.from({length:c},(_,i)=>[null,sama(l.slice(i*n,i*n+n))])};
-const KMR={"Ruang Gambuh A":kol(rng(401,405)),"Ruang Gambuh B":kol(rng(301,308)),"Ruang Gambuh C":kol(rng(201,212)),
- "Ruang Lantai 3":[[null,sama(rng(301,310))],[null,sama(["311","312A","312B","312C",...rng(314,319)])],[null,sama(rng(320,329))],[null,sama(["330","331","332","334","335","336","337A","337B","338","339"])],[null,sama(rng(340,343))]],
- "Ruang Lantai 4":[[null,sama(rng(401,410))],[null,sama(["411",...rng(414,421)])],[null,sama(["422",...rng(426,434)])],[null,sama([...rng(435,442),"443A","443B"])],[null,sama(rng(445,450))]],
- "Ruang Intensif":[["ICU",bed(6,"ICU ")],["ICCU",bed(2,"ICCU ")],["PICU",bed(1,"PICU ")],["HCU",bed(3,"HCU ")]]};
+const bdKmr=(n,iso)=>Array.from({length:n},(_,i)=>["BED "+(i+1),"Bed "+(i+1)+(i+1===iso?" (Isolasi)":"")]);
+const KMR={"Ranap Lantai Dasar":[["Kelas 1",sama(["101A","101B","102A","102B","103A","103B","104A","104B","105A","105B","106A","106B","107","112"])],["Kelas 2",sama(["110A","110B","114A","114B","115","116A","116B","117A","117B","118A","118B","119A","119B"])],["Kelas 3",sama(["108A","108B","108C","108D","109A","109B","109C","120A","120B","120C","120D","120E","120F"])]],
+ "Ranap Lantai III":[["VIP",sama(rng(301,310))],["Kelas 1",sama(["311A","311B","312A","312B","316A","316B"])],["Kelas 2",sama(["314A","314B","315A","315B"])],["Kelas 3",sama(["317A","317B","317C","317D","317E","318A","318B","318C"])]],
+ "Ranap Lantai IV Executive":[["VVIP",sama(rng(401,406))],["VVIP",sama(rng(407,412))],["VVIP",sama(rng(414,418))],["Suite",sama(["419"])]],
+ "ICU":[[null,bdKmr(7,7)]],"PICU":[[null,bdKmr(3)]]};
 const KEX={};
 const kcount=s=>s?String(s).split(",").map(x=>x.trim()).filter(Boolean).length:0;
 const roomsOf=rm=>KMR[rm]||(S.cfg.kamar&&S.cfg.kamar[rm]?[[null,S.cfg.kamar[rm].map(x=>[x,x])]]:null);
@@ -350,7 +353,7 @@ async function sync(){pill();if(!S.cfg.url||!navigator.onLine)return;
  try{for(const k of [...S.del]){const j=await(await fetch(S.cfg.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:S.cfg.token,action:"delete",key:k})})).json();if(!j.ok)throw j.error;S.del=S.del.filter(x=>x!==k);persist()}
   for(const k of [...S.queue]){const r=S.local[k];if(r){const j=await(await fetch(S.cfg.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:S.cfg.token,report:pay(r)})})).json();if(!j.ok)throw j.error}S.queue=S.queue.filter(x=>x!==k);persist()}
   const from=iso(new Date(Date.now()-400*864e5)),j=await(await fetch(`${S.cfg.url}?action=list&from=${from}&token=${encodeURIComponent(S.cfg.token)}`)).json();if(!j.ok)throw j.error;
-  S.remote={};j.reports.forEach(r=>S.remote[r.tanggal+"|"+r.ruang]=r);S.err="";persist()}
+  S.remote={};j.reports.filter(r=>RUANG.includes(r.ruang)).forEach(r=>S.remote[r.tanggal+"|"+r.ruang]=r);S.err="";persist()}
  catch(e){S.err=typeof e==="string"?e:e instanceof SyntaxError?"Apps Script membalas galat. Pastikan script dibuka dari Google Sheet (Extensions > Apps Script) lalu deploy ulang":"Tidak bisa terhubung. Di Deploy, Who has access harus Anyone"}
  pill();render();if(S.err)toast("Gagal sinkron: "+S.err)}
 function pill(){const p=$("#pill");let t="Tersinkron ke Drive",c="";
@@ -377,6 +380,6 @@ $("#ib").onclick=async()=>{if(!ip)return;ip.prompt();await ip.userChoice;ip=null
 $("#in").onclick=()=>{$("#ins").hidden=true};
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!standalone)insShow('Di iPhone/iPad: ketuk tombol Bagikan lalu pilih "Tambah ke Layar Utama".');
 addEventListener("online",sync);buildForm();fillForm({});render();sync();
-const VER="v35";$("#ver").textContent="Versi aplikasi: "+VER;
+const VER="v36";$("#ver").textContent="Versi aplikasi: "+VER;
 if("serviceWorker"in navigator){const had=!!navigator.serviceWorker.controller;let rl=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(had&&!rl){rl=true;location.reload()}});navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{})}
 </script></body></html>
